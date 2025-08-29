@@ -5,6 +5,14 @@ Single-file implementation with referral system, force join, and code generation
 Optimized for Render.com deployment
 """
 
+# Python 3.13+ compatibility fix for imghdr
+try:
+    import imghdr
+except ImportError:
+    import sys
+    import imghdr_compat as imghdr
+    sys.modules['imghdr'] = imghdr
+
 import logging
 import json
 import random
