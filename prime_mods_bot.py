@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-PRIME MODS ☠️ Telegram Bot
+FF H4CK ☠️ Telegram Bot
 Single-file implementation with referral system, force join, and code generation
+Optimized for Render.com deployment
 """
 
 import logging
@@ -15,14 +16,15 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 import telegram
+from keep_alive import keep_alive
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     ContextTypes
 )
 
 # 🔑 Bot Configuration
-BOT_TOKEN = "8292988709:AAG6zzTSraLJKQgwtN6SlCwCwrap738k7vQ"
-ADMIN_ID = int(os.getenv("ADMIN_ID", "6178010957"))  # Replace with your admin ID
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8292988709:AAG6zzTSraLJKQgwtN6SlCwCwrap738k7vQ")
+ADMIN_ID = int(os.getenv("ADMIN_ID", "6178010957"))
 BOT_USERNAME = "FF_H4CK_BOT"
 DEVELOPER_USERNAME = "@BACK_BENCHERS17"
 WELCOME_IMAGE_ID = "AgACAgUAAxkBAAMCaLBNGaOOGQEBE7ZazhjQ5zuhp5YAAvXFMRsTz4lVipP-1pwKygMBAAMCAAN4AAM2BA"
@@ -714,34 +716,48 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 # ---------------- Main Function ----------------
 def main():
     """Start the bot."""
+    # Start keep_alive server for Render
+    keep_alive()
+    
     # Validate bot token
-    if BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
-        logger.error("❌ Please set your BOT_TOKEN in the environment variables or replace the placeholder!")
+    if BOT_TOKEN == "8292988709:AAG6zzTSraLJKQgwtN6SlCwCwrap738k7vQ":
+        logger.info("✅ Using provided bot token")
+    else:
+        logger.error("❌ Please check your BOT_TOKEN!")
         return
     
-    # Create application
-    application = Application.builder().token(BOT_TOKEN).build()
-    
-    # Add handlers
-    application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("stats", stats_command))
-    application.add_handler(CommandHandler("referrals", referral_command))
-    application.add_handler(CommandHandler("admin", admin_command))
-    application.add_handler(CommandHandler("broadcast", broadcast_command))
-    application.add_handler(CommandHandler("users", users_command))
-    
-    application.add_handler(CallbackQueryHandler(callback_query_handler))
-    
-    # Error handler
-    application.add_error_handler(error_handler)
-    
-    # Start bot
-    logger.info("🚀 PRIME MODS Bot starting...")
-    logger.info(f"👑 Admin ID: {ADMIN_ID}")
-    logger.info(f"📢 Channels to join: {len(FORCE_CHANNELS)}")
-    
-    # Run the bot
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    try:
+        # Create application with updated method for compatibility
+        application = Application.builder().token(BOT_TOKEN).build()
+        
+        # Add handlers
+        application.add_handler(CommandHandler("start", start_command))
+        application.add_handler(CommandHandler("stats", stats_command))
+        application.add_handler(CommandHandler("referrals", referral_command))
+        application.add_handler(CommandHandler("admin", admin_command))
+        application.add_handler(CommandHandler("broadcast", broadcast_command))
+        application.add_handler(CommandHandler("users", users_command))
+        
+        application.add_handler(CallbackQueryHandler(callback_query_handler))
+        
+        # Error handler
+        application.add_error_handler(error_handler)
+        
+        # Start bot
+        logger.info("🚀 FF H4CK Bot starting...")
+        logger.info(f"👑 Admin ID: {ADMIN_ID}")
+        logger.info(f"📢 Channels to join: {len(FORCE_CHANNELS)}")
+        logger.info("🌐 Keep-alive server started for Render")
+        
+        # Run the bot with proper error handling for Render
+        application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+        
+    except Exception as e:
+        logger.error(f"❌ Bot failed to start: {e}")
+        # Keep the process alive even if bot fails
+        import time
+        while True:
+            time.sleep(3600)  # Sleep for 1 hour
 
 if __name__ == "__main__":
     main()
