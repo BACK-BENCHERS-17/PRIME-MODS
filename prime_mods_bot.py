@@ -15,12 +15,12 @@ import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
-import telegram
-from keep_alive import keep_alive
 from telegram.ext import (
-    Application, CommandHandler, CallbackQueryHandler,
-    ContextTypes
+    Updater, CommandHandler, CallbackQueryHandler, 
+    CallbackContext, MessageHandler
 )
+from keep_alive import keep_alive
+import telegram
 
 # 🔑 Bot Configuration
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8292988709:AAG6zzTSraLJKQgwtN6SlCwCwrap738k7vQ")
@@ -222,13 +222,13 @@ def can_generate_code(user_id: int) -> bool:
     return get_referral_count(user_id) >= 5
 
 # ---------------- Channel Management ----------------
-async def check_channel_membership(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> List[Dict]:
+def check_channel_membership(context: CallbackContext, user_id: int) -> List[Dict]:
     """Check which channels user hasn't joined."""
     not_joined = []
     
     for channel in FORCE_CHANNELS:
         try:
-            member = await context.bot.get_chat_member(channel["id"], user_id)
+            member = context.bot.get_chat_member(channel["id"], user_id)
             if member.status in ['left', 'kicked']:
                 not_joined.append(channel)
         except Exception as e:
@@ -277,7 +277,7 @@ def generate_premium_code(user_id: int) -> Dict:
     return code_data
 
 # ---------------- Bot Handlers ----------------
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def start_command(update: Update, context: CallbackContext):
     """Handle /start command."""
     user = update.effective_user
     user_id = user.id
@@ -298,7 +298,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if add_referral(referrer_id, user_id):
                     # Notify referrer
                     try:
-                        await context.bot.send_message(
+                        context.bot.send_message(
                             referrer_id,
                             f"🎉 **NEW REFERRAL!** 🎉\n\n"
                             f"👤 {user.first_name} joined through your link!\n"
@@ -311,7 +311,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
     
     # Check channel membership
-    not_joined_channels = await check_channel_membership(context, user_id)
+    not_joined_channels = check_channel_membership(context, user_id)
     
     if not_joined_channels:
         # User needs to join channels
@@ -323,7 +323,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
         keyboard = create_channel_keyboard(not_joined_channels)
-        await update.message.reply_text(message, reply_markup=keyboard, parse_mode='Markdown')
+        update.message.reply_text(message, reply_markup=keyboard, parse_mode='Markdown')
     else:
         # Welcome message
         welcome_text = WELCOME_MESSAGE.format(
@@ -342,7 +342,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Send welcome image first, then text
         try:
-            await update.message.reply_photo(
+            update.message.reply_photo(
                 photo=WELCOME_IMAGE_ID,
                 caption=welcome_text,
                 reply_markup=keyboard,
@@ -350,9 +350,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         except:
             # Fallback to text message if image fails
-            await update.message.reply_text(welcome_text, reply_markup=keyboard, parse_mode='Markdown')
+            update.message.reply_text(welcome_text, reply_markup=keyboard, parse_mode='Markdown')
 
-async def referrals_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def referrals_handler(update: Update, context: CallbackContext):
     """Handle referrals display."""
     query = update.callback_query
     user_id = query.from_user.id
@@ -376,7 +376,7 @@ async def referrals_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ])
     
     try:
-        await query.edit_message_media(
+        query.edit_message_media(
             media=InputMediaPhoto(
                 media=WELCOME_IMAGE_ID,
                 caption=message,
@@ -385,9 +385,9 @@ async def referrals_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=keyboard
         )
     except:
-        await query.edit_message_text(message, reply_markup=keyboard, parse_mode='Markdown')
+        query.edit_message_text(message, reply_markup=keyboard, parse_mode='Markdown')
 
-async def generate_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def generate_code_handler(update: Update, context: CallbackContext):
     """Handle code generation."""
     query = update.callback_query
     user_id = query.from_user.id
@@ -420,9 +420,9 @@ async def generate_code_handler(update: Update, context: ContextTypes.DEFAULT_TY
             [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")]
         ])
     
-    await query.edit_message_text(message, reply_markup=keyboard, parse_mode='Markdown')
+    query.edit_message_text(message, reply_markup=keyboard, parse_mode='Markdown')
 
-async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def stats_handler(update: Update, context: CallbackContext):
     """Handle user stats display."""
     query = update.callback_query
     user_id = query.from_user.id
@@ -447,9 +447,9 @@ async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🏠 Main Menu", callback_data="main_menu")]
     ])
     
-    await query.edit_message_text(message, reply_markup=keyboard, parse_mode='Markdown')
+    query.edit_message_text(message, reply_markup=keyboard, parse_mode='Markdown')
 
-async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def help_handler(update: Update, context: CallbackContext):
     """Handle help display."""
     query = update.callback_query
     
@@ -487,7 +487,7 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ])
     
     try:
-        await query.edit_message_media(
+        query.edit_message_media(
             media=InputMediaPhoto(
                 media=WELCOME_IMAGE_ID,
                 caption=message,
@@ -496,9 +496,9 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=keyboard
         )
     except:
-        await query.edit_message_text(message, reply_markup=keyboard, parse_mode='Markdown')
+        query.edit_message_text(message, reply_markup=keyboard, parse_mode='Markdown')
 
-async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def main_menu_handler(update: Update, context: CallbackContext):
     """Handle main menu display."""
     query = update.callback_query
     user = query.from_user
@@ -518,14 +518,14 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("ℹ️ Help", callback_data="help")]
     ])
     
-    await query.edit_message_text(welcome_text, reply_markup=keyboard, parse_mode='Markdown')
+    query.edit_message_text(welcome_text, reply_markup=keyboard, parse_mode='Markdown')
 
-async def check_channels_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def check_channels_handler(update: Update, context: CallbackContext):
     """Handle channel membership verification."""
     query = update.callback_query
     user_id = query.from_user.id
     
-    not_joined_channels = await check_channel_membership(context, user_id)
+    not_joined_channels = check_channel_membership(context, user_id)
     
     if not_joined_channels:
         message = (
@@ -536,18 +536,18 @@ async def check_channels_handler(update: Update, context: ContextTypes.DEFAULT_T
         )
         
         keyboard = create_channel_keyboard(not_joined_channels)
-        await query.edit_message_text(message, reply_markup=keyboard, parse_mode='Markdown')
+        query.edit_message_text(message, reply_markup=keyboard, parse_mode='Markdown')
     else:
         # All channels joined, show main menu
-        await main_menu_handler(update, context)
+        main_menu_handler(update, context)
 
 # ---------------- Admin Commands ----------------
-async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def admin_command(update: Update, context: CallbackContext):
     """Handle admin panel."""
     user_id = update.effective_user.id
     
     if not is_user_admin(user_id):
-        await update.message.reply_text("❌ **Access Denied!** You are not authorized to use this command.")
+        update.message.reply_text("❌ **Access Denied!** You are not authorized to use this command.")
         return
     
     uptime = datetime.now() - BOT_STATS["start_time"]
@@ -566,18 +566,18 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• `/users` - List recent users"
     )
     
-    await update.message.reply_text(message, parse_mode='Markdown')
+    update.message.reply_text(message, parse_mode='Markdown')
 
-async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def broadcast_command(update: Update, context: CallbackContext):
     """Handle broadcast message to all users."""
     user_id = update.effective_user.id
     
     if not is_user_admin(user_id):
-        await update.message.reply_text("❌ **Access Denied!**")
+        update.message.reply_text("❌ **Access Denied!**")
         return
     
     if not context.args:
-        await update.message.reply_text("📢 **Usage:** `/broadcast <your message>`")
+        update.message.reply_text("📢 **Usage:** `/broadcast <your message>`")
         return
     
     broadcast_text = " ".join(context.args)
@@ -594,11 +594,11 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sent_count = 0
     failed_count = 0
     
-    status_message = await update.message.reply_text("📤 **Broadcasting message...**")
+    status_message = update.message.reply_text("📤 **Broadcasting message...**")
     
     for user_id_str in USERS_DATA:
         try:
-            await context.bot.send_message(int(user_id_str), message, parse_mode='Markdown')
+            context.bot.send_message(int(user_id_str), message, parse_mode='Markdown')
             sent_count += 1
         except Exception as e:
             failed_count += 1
@@ -606,7 +606,7 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Update status every 10 users
         if (sent_count + failed_count) % 10 == 0:
-            await status_message.edit_text(f"📤 **Broadcasting...** {sent_count + failed_count}/{len(USERS_DATA)}")
+            status_message.edit_text(f"📤 **Broadcasting...** {sent_count + failed_count}/{len(USERS_DATA)}")
     
     final_message = (
         f"✅ **Broadcast Complete!**\n\n"
@@ -615,14 +615,14 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📊 **Total:** {sent_count + failed_count}"
     )
     
-    await status_message.edit_text(final_message)
+    status_message.edit_text(final_message)
 
-async def users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def users_command(update: Update, context: CallbackContext):
     """Handle users list command."""
     user_id = update.effective_user.id
     
     if not is_user_admin(user_id):
-        await update.message.reply_text("❌ **Access Denied!**")
+        update.message.reply_text("❌ **Access Denied!**")
         return
     
     # Get recent users (last 20)
@@ -643,31 +643,31 @@ async def users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message += f"👤 **{name}** (@{username})\n"
         message += f"🆔 `{user_id_str}` | 👥 {referrals} refs | 🔑 {codes} codes\n\n"
     
-    await update.message.reply_text(message, parse_mode='Markdown')
+    update.message.reply_text(message, parse_mode='Markdown')
 
 # ---------------- Callback Query Router ----------------
-async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def callback_query_handler(update: Update, context: CallbackContext):
     """Handle all callback queries."""
     query = update.callback_query
-    await query.answer()
+    query.answer()
     
     update_user_activity(query.from_user.id)
     
     if query.data == "referrals":
-        await referrals_handler(update, context)
+        referrals_handler(update, context)
     elif query.data == "generate_code":
-        await generate_code_handler(update, context)
+        generate_code_handler(update, context)
     elif query.data == "stats":
-        await stats_handler(update, context)
+        stats_handler(update, context)
     elif query.data == "help":
-        await help_handler(update, context)
+        help_handler(update, context)
     elif query.data == "main_menu":
-        await main_menu_handler(update, context)
+        main_menu_handler(update, context)
     elif query.data == "check_channels":
-        await check_channels_handler(update, context)
+        check_channels_handler(update, context)
 
 # ---------------- Text Command Handlers ----------------
-async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def stats_command(update: Update, context: CallbackContext):
     """Handle /stats command."""
     user_id = update.effective_user.id
     user_data = get_user_data(user_id)
@@ -687,9 +687,9 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🎯 **Status:** {'🔓 Code Generator Unlocked' if can_generate_code(user_id) else '🔒 Need more referrals'}"
     )
     
-    await update.message.reply_text(message, parse_mode='Markdown')
+    update.message.reply_text(message, parse_mode='Markdown')
 
-async def referral_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def referral_command(update: Update, context: CallbackContext):
     """Handle /referrals command."""
     user_id = update.effective_user.id
     user_data = get_user_data(user_id)
@@ -706,10 +706,10 @@ async def referral_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         referral_link
     )
     
-    await update.message.reply_text(message, parse_mode='Markdown')
+    update.message.reply_text(message, parse_mode='Markdown')
 
 # ---------------- Error Handler ----------------
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+def error_handler(update: object, context: CallbackContext) -> None:
     """Log errors caused by Updates."""
     logger.error(f"Update {update} caused error {context.error}")
 
@@ -720,28 +720,25 @@ def main():
     keep_alive()
     
     # Validate bot token
-    if BOT_TOKEN == "8292988709:AAG6zzTSraLJKQgwtN6SlCwCwrap738k7vQ":
-        logger.info("✅ Using provided bot token")
-    else:
-        logger.error("❌ Please check your BOT_TOKEN!")
-        return
+    logger.info("✅ Starting FF H4CK Bot with provided token")
     
     try:
-        # Create application with updated method for compatibility
-        application = Application.builder().token(BOT_TOKEN).build()
+        # Create updater with token
+        updater = Updater(token=BOT_TOKEN, use_context=True)
+        dispatcher = updater.dispatcher
         
         # Add handlers
-        application.add_handler(CommandHandler("start", start_command))
-        application.add_handler(CommandHandler("stats", stats_command))
-        application.add_handler(CommandHandler("referrals", referral_command))
-        application.add_handler(CommandHandler("admin", admin_command))
-        application.add_handler(CommandHandler("broadcast", broadcast_command))
-        application.add_handler(CommandHandler("users", users_command))
+        dispatcher.add_handler(CommandHandler("start", start_command))
+        dispatcher.add_handler(CommandHandler("stats", stats_command))
+        dispatcher.add_handler(CommandHandler("referrals", referral_command))
+        dispatcher.add_handler(CommandHandler("admin", admin_command))
+        dispatcher.add_handler(CommandHandler("broadcast", broadcast_command))
+        dispatcher.add_handler(CommandHandler("users", users_command))
         
-        application.add_handler(CallbackQueryHandler(callback_query_handler))
+        dispatcher.add_handler(CallbackQueryHandler(callback_query_handler))
         
         # Error handler
-        application.add_error_handler(error_handler)
+        dispatcher.add_error_handler(error_handler)
         
         # Start bot
         logger.info("🚀 FF H4CK Bot starting...")
@@ -749,8 +746,9 @@ def main():
         logger.info(f"📢 Channels to join: {len(FORCE_CHANNELS)}")
         logger.info("🌐 Keep-alive server started for Render")
         
-        # Run the bot with proper error handling for Render
-        application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+        # Start polling
+        updater.start_polling(drop_pending_updates=True)
+        updater.idle()
         
     except Exception as e:
         logger.error(f"❌ Bot failed to start: {e}")
