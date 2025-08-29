@@ -21,7 +21,7 @@ from telegram.ext import (
 )
 
 # 🔑 Bot Configuration
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+BOT_TOKEN = "8292988709:AAG6zzTSraLJKQgwtN6SlCwCwrap738k7vQ"
 ADMIN_ID = int(os.getenv("ADMIN_ID", "6178010957"))  # Replace with your admin ID
 BOT_USERNAME = "FF_H4CK_BOT"
 DEVELOPER_USERNAME = "@BACK_BENCHERS17"
