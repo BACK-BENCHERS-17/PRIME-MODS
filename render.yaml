@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ff-hack-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python prime_mods_bot.py
+    envVars:
+      - key: BOT_TOKEN
+        value: 8292988709:AAG6zzTSraLJKQgwtN6SlCwCwrap738k7vQ
+      - key: ADMIN_ID
+        value: 6178010957
